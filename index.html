@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Daily Expense Tracker</title>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #fef3c7 0, #f5f5f4 45%, #e5e7eb 100%);
+      color: #111827;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 32px 16px;
+      animation: bodyFade 0.6s ease-out;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    .bg-blob {
+      position: fixed;
+      top: -120px;
+      right: -120px;
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle at 30% 20%, #fed7aa 0, #fb923c 40%, #f97316 70%, transparent 80%);
+      opacity: 0.6;
+      filter: blur(6px);
+      animation: blobFloat 12s ease-in-out infinite alternate;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .bg-blob-2 {
+      position: fixed;
+      bottom: -140px;
+      left: -80px;
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle at 30% 20%, #bfdbfe 0, #60a5fa 40%, #1d4ed8 70%, transparent 80%);
+      opacity: 0.45;
+      filter: blur(8px);
+      animation: blobFloat2 16s ease-in-out infinite alternate;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    @keyframes blobFloat {
+      0% { transform: translate(0, 0) scale(1); opacity: 0.55; }
+      50% { transform: translate(-40px, 20px) scale(1.05); opacity: 0.7; }
+      100% { transform: translate(20px, 40px) scale(1.03); opacity: 0.5; }
+    }
+
+    @keyframes blobFloat2 {
+      0% { transform: translate(0, 0) scale(1); opacity: 0.4; }
+      50% { transform: translate(30px, -30px) scale(1.08); opacity: 0.55; }
+      100% { transform: translate(-20px, 10px) scale(1.02); opacity: 0.45; }
+    }
+
+    @keyframes bodyFade {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .app {
+      width: 100%;
+      max-width: 1000px;
+      background: #f9fafb;
+      border-radius: 18px;
+      border: 1px solid #e5e7eb;
+      padding: 20px 22px 28px;
+      box-shadow: 0 18px 45px rgba(148, 163, 184, 0.35);
+      position: relative;
+      z-index: 1;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      animation: slideUp 0.5s ease-out;
+    }
+
+    .logo {
+      font-weight: 700;
+      font-size: 24px;
+      letter-spacing: 2px;
+      color: #ea580c;
+    }
+
+    .sub {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #fed7aa;
+      color: #7c2d12;
+      background: #ffedd5;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-datetime {
+      padding-left: 8px;
+      margin-left: 4px;
+      border-left: 1px solid rgba(124, 45, 18, 0.35);
+      font-size: 10px;
+      color: #7c2d12;
+      opacity: 0.9;
+      white-space: nowrap;
+    }
+
+    .month-banner {
+      display: none;
+      margin-bottom: 12px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #ecfdf5, #dcfce7);
+      border: 1px solid #bbf7d0;
+      font-size: 12px;
+      color: #166534;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .month-banner.bad {
+      background: linear-gradient(135deg, #fef2f2, #fee2e2);
+      border-color: #fecaca;
+      color: #991b1b;
+    }
+
+    .month-banner strong {
+      font-weight: 600;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .card {
+      background: linear-gradient(135deg, #fff7ed, #f3f4f6);
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      padding: 10px 12px;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+      opacity: 0;
+      transform: translateY(12px);
+      animation: cardIn 0.55s ease-out forwards;
+    }
+
+    .summary .card:nth-child(1) { animation-delay: 0.10s; }
+    .summary .card:nth-child(2) { animation-delay: 0.18s; }
+    .summary .card:nth-child(3) { animation-delay: 0.26s; }
+    .summary .card:nth-child(4) { animation-delay: 0.34s; }
+    .summary .card:nth-child(5) { animation-delay: 0.42s; }
+
+    .card h3 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+
+    .card p {
+      font-size: 20px;
+      font-weight: 600;
+      color: #16a34a;
+    }
+
+    .card.accent { border-color: #fb923c; }
+
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 26px rgba(148, 163, 184, 0.4);
+      border-color: #fb923c;
+    }
+
+    .section {
+      margin-bottom: 16px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      background: radial-gradient(circle at top left, #fff7ed 0, #f9fafb 55%);
+      padding: 14px 14px 16px;
+      opacity: 0;
+      transform: translateY(16px);
+      animation: slideUp 0.5s ease-out forwards;
+    }
+
+    .section h2 {
+      font-size: 15px;
+      margin-bottom: 10px;
+      color: #111827;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section h2 span {
+      font-size: 11px;
+      color: #6b7280;
+      font-weight: 400;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 8px;
+    }
+
+    input, select, button {
+      padding: 7px 9px;
+      border-radius: 8px;
+      border: 1px solid #d4d4d8;
+      background: #fdfdfd;
+      color: #111827;
+      font-size: 13px;
+    }
+
+    input::placeholder { color: #9ca3af; }
+
+    button {
+      cursor: pointer;
+      font-weight: 500;
+      background: linear-gradient(135deg, #fb923c, #f97316);
+      border: none;
+      color: #fefce8;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 22px rgba(249, 115, 22, 0.4);
+      filter: brightness(1.03);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    .danger-btn {
+      background: linear-gradient(135deg, #f97373, #ef4444);
+      color: #fef2f2;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    th, td {
+      padding: 8px 6px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    th {
+      font-weight: 500;
+      color: #6b7280;
+      font-size: 12px;
+    }
+
+    tbody tr:nth-child(even) { background: #f9fafb; }
+
+    .delete-icon-btn {
+      background: transparent;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      padding: 4px 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #6b7280;
+      transition: background 0.15s ease, transform 0.12s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .delete-icon-btn svg {
+      width: 14px;
+      height: 14px;
+      display: block;
+    }
+
+    .delete-icon-btn:hover {
+      background: #e5e7eb;
+      border-color: #9ca3af;
+      color: #374151;
+      transform: translateY(-1px);
+    }
+
+    .delete-icon-btn:active {
+      transform: translateY(0);
+    }
+
+    .empty-row td {
+      text-align: center;
+      color: #9ca3af;
+      font-style: italic;
+    }
+
+    .tiny-label {
+      font-size: 11px;
+      color: #6b7280;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .tiny-label span {
+      color: #b91c1c;
+      font-weight: 600;
+    }
+
+    .toggle-group {
+      display: flex;
+      gap: 6px;
+    }
+    .toggle-btn {
+      flex: 1;
+      padding: 6px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      border: 1px solid #d4d4d8;
+      background: #fdfdfd;
+      color: #6b7280;
+      cursor: pointer;
+    }
+    .toggle-btn.active {
+      border-color: #fb923c;
+      background: #ffedd5;
+      color: #7c2d12;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .summary-item {
+      font-size: 13px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: #fefce8;
+      border: 1px solid #fee2e2;
+    }
+    .summary-item span {
+      font-weight: 600;
+    }
+
+    .landing-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      backdrop-filter: blur(6px);
+    }
+
+    .landing-card {
+      background: #fefce8;
+      border-radius: 20px;
+      padding: 24px 20px 20px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.5);
+      text-align: center;
+      animation: slideUp 0.5s ease-out;
+      border: 1px solid #fed7aa;
+    }
+
+    .landing-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 20%, #fed7aa 0, #fb923c 40%, #c2410c 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px;
+      color: #fefce8;
+      font-size: 32px;
+      font-weight: 700;
+      box-shadow: 0 12px 30px rgba(248, 113, 113, 0.4);
+    }
+
+    .landing-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #111827;
+    }
+
+    .landing-sub {
+      font-size: 13px;
+      color: #4b5563;
+      margin-bottom: 14px;
+    }
+
+    .landing-input {
+      width: 100%;
+      margin-bottom: 10px;
+      text-align: left;
+    }
+
+    .landing-input label {
+      font-size: 12px;
+      color: #6b7280;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .landing-input input,
+    .landing-input select {
+      width: 100%;
+    }
+
+    .landing-btn {
+      width: 100%;
+      margin-top: 4px;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(10px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @media (max-width: 640px) {
+      .header { flex-direction: column; align-items: flex-start; gap: 4px; }
+      .app { padding: 18px 14px 22px; }
+      .month-banner { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-blob"></div>
+  <div class="bg-blob-2"></div>
+
+  <div class="landing-overlay" id="landingOverlay">
+    <div class="landing-card" id="landingStep1">
+      <div class="landing-avatar">
+        💸
+      </div>
+      <div class="landing-title">Welcome to your money hub</div>
+      <div class="landing-sub">Tell who you are & how you track.</div>
+
+      <div class="landing-input">
+        <label for="userNameInput">Your name</label>
+        <input id="userNameInput" type="text" placeholder="Enter your name" />
+      </div>
+
+      <div class="landing-input">
+        <label>Mode</label>
+        <div class="toggle-group">
+          <button type="button" id="modePersonal" class="toggle-btn active" data-mode="personal">
+            Personal
+          </button>
+          <button type="button" id="modeTeam" class="toggle-btn" data-mode="team">
+            Team / Trip
+          </button>
+        </div>
+        <input type="hidden" id="appMode" value="personal" />
+      </div>
+
+      <button id="goToStep2Btn" class="landing-btn" type="button">
+        Continue
+      </button>
+    </div>
+
+    <div class="landing-card" id="landingStep2" style="display:none;">
+      <div class="landing-title" id="step2Title">Monthly Target</div>
+      <div class="landing-sub" id="step2Sub">Set your monthly pocket-money target.</div>
+
+      <div class="landing-input">
+        <label id="step2Label" for="initialAmountInput">Monthly target (₹)</label>
+        <input id="initialAmountInput" type="number" min="1" placeholder="Eg. 3000" />
+      </div>
+
+      <button id="startAppBtn" class="landing-btn" type="button">
+        Start tracking
+      </button>
+    </div>
+  </div>
+
+  <div class="app">
+    <header class="header">
+      <div>
+        <div class="logo" id="logoText">RISHI.</div>
+        <div class="sub" id="modeSubtitle">Daily Expense Tracker · Personal</div>
+      </div>
+      <div class="badge">
+        Track your money. Control your future.
+        <span id="dateTime" class="badge-datetime"></span>
+      </div>
+    </header>
+
+    <div class="month-banner" id="monthBanner">
+      <span id="monthBannerText"></span>
+      <button type="button" id="monthBannerClose" style="border:none;background:transparent;font-size:11px;color:inherit;cursor:pointer;">Dismiss</button>
+    </div>
+
+    <section class="summary">
+      <div class="card accent">
+        <h3>Today</h3>
+        <p id="todayTotal">₹0</p>
+      </div>
+      <div class="card">
+        <h3>Last 7 Days</h3>
+        <p id="weekTotal">₹0</p>
+      </div>
+      <div class="card">
+        <h3>This Month Spent</h3>
+        <p id="monthTotal">₹0</p>
+      </div>
+      <div class="card">
+        <h3 id="monthTargetLabel">Monthly Target</h3>
+        <p id="monthTarget">₹0</p>
+      </div>
+      <div class="card" id="remainingCard">
+        <h3>Remaining This Month</h3>
+        <p id="monthRemaining">₹0</p>
+      </div>
+    </section>
+
+    <section class="section" id="teamSection" style="display:none;">
+      <h2>Team Members <span>Add everyone in this trip & their position</span></h2>
+      <div class="row">
+        <div>
+          <span class="tiny-label">Member name</span>
+          <input type="text" id="memberNameInput" placeholder="Eg. Rahul, Sanjay" />
+        </div>
+        <div>
+          <span class="tiny-label">Position <span>(short note)</span></span>
+          <input type="text" id="memberPositionInput" placeholder="Eg. Leader, Finance, Camera" />
+        </div>
+        <div>
+          <span class="tiny-label">Contact <span>(phone)</span></span>
+          <input type="tel" id="memberContactInput" placeholder="Eg. 98765 43210" />
+        </div>
+        <button type="button" id="addMemberBtn">Add member</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <div>
+          <span class="tiny-label">Team head (optional)</span>
+          <select id="teamHeadSelect">
+            <option value="">Select head</option>
+          </select>
+        </div>
+      </div>
+      <table style="margin-top:8px;">
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th>Position</th>
+            <th>Contact</th>
+          </tr>
+        </thead>
+        <tbody id="membersTableBody"></tbody>
+      </table>
+    </section>
+
+    <section class="section" id="targetSection">
+      <h2>Monthly Target <span>Set or adjust your personal pocket-money any time</span></h2>
+      <form id="targetForm">
+        <div class="row">
+          <select id="targetMode">
+            <option value="set">Set exact target</option>
+            <option value="add">Add to target (+)</option>
+            <option value="sub">Subtract from target (-)</option>
+          </select>
+          <input type="number" id="targetAmount" placeholder="Amount (₹)" min="0" />
+          <button type="submit">Apply</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="section" id="cashSection">
+      <h2>Daily Cash Report <span>How much cash in pocket this morning</span></h2>
+      <form id="cashForm">
+        <div class="row">
+          <input type="number" id="cashAmount" placeholder="Cash in pocket today (₹)" min="0" />
+          <button type="submit">Save today's cash</button>
+        </div>
+      </form>
+      <p class="tiny-label" id="cashInfo">No daily cash recorded yet.</p>
+    </section>
+
+    <section class="section" id="summarySection">
+      <h2>Today's End-of-Day Summary <span>Cash vs UPI spend and closing balance</span></h2>
+      <button id="refreshTodaySummaryBtn" type="button">Refresh today summary</button>
+      <div class="summary-grid">
+        <div class="summary-item">
+          Starting cash today: <span id="sumStartCash">₹0</span>
+        </div>
+        <div class="summary-item">
+          Cash spent today: <span id="sumCashSpent">₹0</span>
+        </div>
+        <div class="summary-item">
+          UPI spent today: <span id="sumUPISpent">₹0</span>
+        </div>
+        <div class="summary-item">
+          Total spent today: <span id="sumTotalSpent">₹0</span>
+        </div>
+        <div class="summary-item">
+          Closing cash (est.): <span id="sumClosingCash">₹0</span>
+        </div>
+      </div>
+      <p class="tiny-label" id="summaryNote">Summary uses today's expenses and today's morning cash.</p>
+    </section>
+
+    <section class="section">
+      <h2>Add Expense <span>Log every spend – cash or UPI</span></h2>
+      <form id="expenseForm">
+        <div class="row">
+          <input type="number" id="amount" placeholder="Amount (₹)" min="1" required />
+
+          <select id="category" required>
+            <option value="">Category</option>
+            <option value="Food">Food / Snacks</option>
+            <option value="Travel">Travel / Cab</option>
+            <option value="Recharge">Recharge / Bills</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Other">Other</option>
+          </select>
+
+          <select id="payment" required>
+            <option value="">Payment Mode</option>
+            <option value="Cash">Cash</option>
+            <option value="UPI">UPI (GPay / PhonePe)</option>
+            <option value="Card">Card</option>
+          </select>
+
+          <div id="memberSelectWrapper" style="display:none;">
+            <span class="tiny-label">Who spent? <span>(team only)</span></span>
+            <select id="memberSelect">
+              <option value="">Select member</option>
+            </select>
+          </div>
+
+          <div>
+            <span id="dateModeLabel" class="tiny-label">
+              Using <span>Now</span> – current date & time
+            </span>
+            <div class="toggle-group">
+              <button type="button" id="btnNow" class="toggle-btn active" data-mode="now">
+                Now
+              </button>
+              <button type="button" id="btnCustom" class="toggle-btn" data-mode="custom">
+                Custom date
+              </button>
+            </div>
+            <input type="hidden" id="dateModeHidden" value="now" />
+          </div>
+
+          <div>
+            <span class="tiny-label">If custom, choose date:</span>
+            <input type="date" id="date" />
+          </div>
+
+          <div>
+            <span id="noteLabel" class="tiny-label">
+              Short note <span>(optional)</span>
+            </span>
+            <input type="text" id="note" placeholder="E.g. fries, auto, movie..." />
+          </div>
+
+          <button type="submit">Add</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="section">
+      <h2>All Expenses <span>Full history of this month</span></h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Member</th>
+            <th>Category</th>
+            <th>Mode</th>
+            <th>Amount</th>
+            <th>Note</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="expenseTableBody"></tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h2>Target Adjustments <span>Every change with date & time</span></h2>
+      <table>
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Action</th>
+            <th>Amount</th>
+            <th>New Target</th>
+          </tr>
+        </thead>
+        <tbody id="targetHistoryBody"></tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h2>Reset Everything <span>Wipe all data and start clean</span></h2>
+      <button id="clearAllBtn" type="button" class="danger-btn">Clear all data</button>
+    </section>
+  </div>
+
+  <script>
+    const landingOverlay = document.getElementById("landingOverlay");
+    const landingStep1 = document.getElementById("landingStep1");
+    const landingStep2 = document.getElementById("landingStep2");
+    const step2Title = document.getElementById("step2Title");
+    const step2Sub = document.getElementById("step2Sub");
+    const step2Label = document.getElementById("step2Label");
+    const initialAmountInput = document.getElementById("initialAmountInput");
+
+    const userNameInput = document.getElementById("userNameInput");
+    const goToStep2Btn = document.getElementById("goToStep2Btn");
+    const startAppBtn = document.getElementById("startAppBtn");
+    const logoText = document.getElementById("logoText");
+    const modeSubtitle = document.getElementById("modeSubtitle");
+
+    const modePersonalBtn = document.getElementById("modePersonal");
+    const modeTeamBtn = document.getElementById("modeTeam");
+    const appModeHidden = document.getElementById("appMode");
+
+    const monthBanner = document.getElementById("monthBanner");
+    const monthBannerText = document.getElementById("monthBannerText");
+    const monthBannerClose = document.getElementById("monthBannerClose");
+
+    function setAppMode(mode) {
+      appModeHidden.value = mode;
+      if (mode === "personal") {
+        modePersonalBtn.classList.add("active");
+        modeTeamBtn.classList.remove("active");
+      } else {
+        modeTeamBtn.classList.add("active");
+        modePersonalBtn.classList.remove("active");
+      }
+      updateModeUI();
+      updateStep2Texts();
+      updateSubtitle();
+    }
+
+    function updateSubtitle() {
+      const mode = appModeHidden.value || "personal";
+      if (mode === "personal") {
+        modeSubtitle.textContent = "Daily Expense Tracker · Personal";
+      } else {
+        modeSubtitle.textContent = "Daily Expense Tracker · Team / Trip";
+      }
+    }
+
+    modePersonalBtn.addEventListener("click", () => setAppMode("personal"));
+    modeTeamBtn.addEventListener("click", () => setAppMode("team"));
+
+    function updateStep2Texts() {
+      const mode = appModeHidden.value || "personal";
+      if (mode === "personal") {
+        step2Title.textContent = "Monthly Target";
+        step2Sub.textContent = "Set your monthly pocket-money target.";
+        step2Label.textContent = "Monthly target (₹)";
+        initialAmountInput.placeholder = "Eg. 3000";
+      } else {
+        step2Title.textContent = "Team Budget";
+        step2Sub.textContent = "Set total budget for this team / trip.";
+        step2Label.textContent = "Team budget (₹)";
+        initialAmountInput.placeholder = "Eg. 12000";
+      }
+    }
+
+    function applyUserName(name) {
+      const clean = name.trim() || "User";
+      logoText.textContent = clean.toUpperCase() + ".";
+      document.title = clean + " – Daily Expense Tracker";
+    }
+
+    function initLanding() {
+      const storedName = localStorage.getItem("rishi_username");
+      const storedMode = localStorage.getItem("rishi_mode") || "personal";
+      const storedTarget = localStorage.getItem("rishi_month_target");
+
+      setAppMode(storedMode);
+
+      if (storedName && storedTarget) {
+        applyUserName(storedName);
+        landingOverlay.style.display = "none";
+        return;
+      }
+
+      landingOverlay.style.display = "flex";
+      landingStep1.style.display = "block";
+      landingStep2.style.display = "none";
+    }
+
+    goToStep2Btn.addEventListener("click", () => {
+      const name = userNameInput.value.trim();
+      if (!name) {
+        alert("Please enter your name.");
+        userNameInput.focus();
+        return;
+      }
+      localStorage.setItem("rishi_username", name);
+      applyUserName(name);
+      updateStep2Texts();
+      landingStep1.style.display = "none";
+      landingStep2.style.display = "block";
+    });
+
+    startAppBtn.addEventListener("click", () => {
+      const mode = appModeHidden.value || "personal";
+      const rawVal = initialAmountInput.value.trim();
+      const val = parseFloat(rawVal);
+      if (!rawVal || Number.isNaN(val) || val <= 0) {
+        alert("Please enter a valid amount.");
+        initialAmountInput.focus();
+        return;
+      }
+
+      localStorage.setItem("rishi_mode", mode);
+      localStorage.setItem("rishi_month_target", val.toString());
+
+      monthTarget = val;
+      calculateTotals();
+      updateMonthBanner();
+
+      landingOverlay.style.opacity = "1";
+      landingOverlay.style.transition = "opacity 0.3s ease-out";
+      requestAnimationFrame(() => {
+        landingOverlay.style.opacity = "0";
+        setTimeout(() => {
+          landingOverlay.style.display = "none";
+        }, 300);
+      });
+    });
+
+    userNameInput.addEventListener("keyup", (e) => {
+      if (e.key === "Enter") goToStep2Btn.click();
+    });
+
+    const form = document.getElementById("expenseForm");
+    const amountInput = document.getElementById("amount");
+    const categoryInput = document.getElementById("category");
+    const paymentInput = document.getElementById("payment");
+    const dateInput = document.getElementById("date");
+    const noteInput = document.getElementById("note");
+    const noteLabel = document.getElementById("noteLabel");
+
+    const memberSelectWrapper = document.getElementById("memberSelectWrapper");
+    const memberSelect = document.getElementById("memberSelect");
+    const teamSection = document.getElementById("teamSection");
+    const memberNameInput2 = document.getElementById("memberNameInput");
+    const memberPositionInput = document.getElementById("memberPositionInput");
+    const memberContactInput = document.getElementById("memberContactInput");
+    const addMemberBtn = document.getElementById("addMemberBtn");
+    const membersTableBody = document.getElementById("membersTableBody");
+    const teamHeadSelect = document.getElementById("teamHeadSelect");
+
+    const targetSection = document.getElementById("targetSection");
+    const cashSection = document.getElementById("cashSection");
+    const summarySection = document.getElementById("summarySection");
+    const remainingCard = document.getElementById("remainingCard");
+    const monthTargetLabel = document.getElementById("monthTargetLabel");
+
+    const btnNow = document.getElementById("btnNow");
+    const btnCustom = document.getElementById("btnCustom");
+    const dateModeHidden = document.getElementById("dateModeHidden");
+    const dateModeLabel = document.getElementById("dateModeLabel");
+
+    const targetForm = document.getElementById("targetForm");
+    const targetAmountInput = document.getElementById("targetAmount");
+    const targetModeInput = document.getElementById("targetMode");
+
+    const cashForm = document.getElementById("cashForm");
+    const cashAmountInput = document.getElementById("cashAmount");
+    const cashInfo = document.getElementById("cashInfo");
+
+    const clearAllBtn = document.getElementById("clearAllBtn");
+
+    const refreshTodaySummaryBtn = document.getElementById("refreshTodaySummaryBtn");
+    const sumStartCashEl = document.getElementById("sumStartCash");
+    const sumCashSpentEl = document.getElementById("sumCashSpent");
+    const sumUPISpentEl = document.getElementById("sumUPISpent");
+    const sumTotalSpentEl = document.getElementById("sumTotalSpent");
+    const sumClosingCashEl = document.getElementById("sumClosingCash");
+    const summaryNoteEl = document.getElementById("summaryNote");
+
+    const todayTotalEl = document.getElementById("todayTotal");
+    const weekTotalEl = document.getElementById("weekTotal");
+    const monthTotalEl = document.getElementById("monthTotal");
+    const monthTargetEl = document.getElementById("monthTarget");
+    const monthRemainingEl = document.getElementById("monthRemaining");
+    const tableBody = document.getElementById("expenseTableBody");
+    const targetHistoryBody = document.getElementById("targetHistoryBody");
+
+    const dateTimeEl = document.getElementById("dateTime");
+
+    let expenses = [];
+    let monthTarget = 0;
+    let targetHistory = [];
+    let dailyCash = [];
+    let teamMembers = []; // {name, position, contact}
+    let teamHead = "";
+
+    function loadFromStorage() {
+      const raw = localStorage.getItem("rishi_expenses");
+      expenses = raw ? JSON.parse(raw) : [];
+
+      const rawTarget = localStorage.getItem("rishi_month_target");
+      monthTarget = rawTarget ? parseFloat(rawTarget) : 0;
+
+      const rawHist = localStorage.getItem("rishi_target_history");
+      targetHistory = rawHist ? JSON.parse(rawHist) : [];
+
+      const rawCash = localStorage.getItem("rishi_daily_cash");
+      dailyCash = rawCash ? JSON.parse(rawCash) : [];
+
+      const rawMembers = localStorage.getItem("rishi_team_members");
+      if (rawMembers) {
+        const parsed = JSON.parse(rawMembers);
+        if (parsed.length && typeof parsed[0] === "string") {
+          teamMembers = parsed.map((name) => ({ name, position: "", contact: "" }));
+        } else if (parsed.length && parsed[0] && parsed[0].name && parsed[0].position !== undefined && parsed[0].contact === undefined) {
+          teamMembers = parsed.map((m) => ({
+            name: m.name,
+            position: m.position || "",
+            contact: ""
+          }));
+        } else {
+          teamMembers = parsed;
+        }
+      } else {
+        teamMembers = [];
+      }
+
+      const rawHead = localStorage.getItem("rishi_team_head");
+      teamHead = rawHead || "";
+
+      const storedMode = localStorage.getItem("rishi_mode") || "personal";
+      appModeHidden.value = storedMode;
+      updateSubtitle();
+    }
+
+    function saveExpenses() {
+      localStorage.setItem("rishi_expenses", JSON.stringify(expenses));
+    }
+
+    function saveTarget() {
+      localStorage.setItem("rishi_month_target", monthTarget.toString());
+      localStorage.setItem("rishi_target_history", JSON.stringify(targetHistory));
+    }
+
+    function saveDailyCash() {
+      localStorage.setItem("rishi_daily_cash", JSON.stringify(dailyCash));
+    }
+
+    function saveMembers() {
+      localStorage.setItem("rishi_team_members", JSON.stringify(teamMembers));
+    }
+
+    function saveTeamHead() {
+      localStorage.setItem("rishi_team_head", teamHead);
+    }
+
+    function formatDate(dateStr) {
+      const d = new Date(dateStr);
+      if (Number.isNaN(d.getTime())) return "";
+      return d.toLocaleDateString("en-IN");
+    }
+
+    function getToday() {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    }
+
+    function daysDiff(a, b) {
+      const diff = a.getTime() - b.getTime();
+      return diff / (1000 * 60 * 60 * 24);
+    }
+
+    function animateNumber(el, from, to, duration = 250) {
+      const start = performance.now();
+      function frame(now) {
+        const progress = Math.min((now - start) / duration, 1);
+        const value = from + (to - from) * progress;
+        el.textContent = "₹" + Math.round(value);
+        if (progress < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function calculateTotals() {
+      const today = getToday();
+      let todaySum = 0, weekSum = 0, monthSum = 0;
+
+      for (const e of expenses) {
+        const d = new Date(e.date);
+        if (Number.isNaN(d.getTime())) continue;
+        const dMid = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+        const sameDay =
+          dMid.getFullYear() === today.getFullYear() &&
+          dMid.getMonth() === today.getMonth() &&
+          dMid.getDate() === today.getDate();
+        if (sameDay) todaySum += e.amount;
+
+        const diffDays = daysDiff(today, dMid);
+        if (diffDays >= 0 && diffDays < 7) weekSum += e.amount;
+
+        if (
+          dMid.getFullYear() === today.getFullYear() &&
+          dMid.getMonth() === today.getMonth()
+        ) monthSum += e.amount;
+      }
+
+      const remaining = monthTarget - monthSum;
+
+      const prevToday = parseInt(todayTotalEl.textContent.replace("₹","")) || 0;
+      const prevWeek = parseInt(weekTotalEl.textContent.replace("₹","")) || 0;
+      const prevMonth = parseInt(monthTotalEl.textContent.replace("₹","")) || 0;
+      const prevTarget = parseInt(monthTargetEl.textContent.replace("₹","")) || 0;
+      const prevRemain = parseInt(monthRemainingEl.textContent.replace("₹","")) || 0;
+
+      animateNumber(todayTotalEl, prevToday, todaySum);
+      animateNumber(weekTotalEl, prevWeek, weekSum);
+      animateNumber(monthTotalEl, prevMonth, monthSum);
+      animateNumber(monthTargetEl, prevTarget, monthTarget);
+      animateNumber(monthRemainingEl, prevRemain, remaining);
+
+      updateMonthBanner();
+    }
+
+    function renderMembers() {
+      teamHeadSelect.innerHTML = '<option value="">Select head</option>';
+      memberSelect.innerHTML = '<option value="">Select member</option>';
+      membersTableBody.innerHTML = "";
+
+      if (teamMembers.length === 0) {
+        const row = document.createElement("tr");
+        row.className = "empty-row";
+        const cell = document.createElement("td");
+        cell.colSpan = 3;
+        cell.textContent = "No team members added yet.";
+        row.appendChild(cell);
+        membersTableBody.appendChild(row);
+        return;
+      }
+
+      teamMembers.forEach((m) => {
+        const display = m.position ? `${m.name} (${m.position})` : m.name;
+
+        const optHead = document.createElement("option");
+        optHead.value = m.name;
+        optHead.textContent = display;
+        if (m.name === teamHead) optHead.selected = true;
+        teamHeadSelect.appendChild(optHead);
+
+        const optMember = document.createElement("option");
+        optMember.value = m.name;
+        optMember.textContent = display;
+        memberSelect.appendChild(optMember);
+
+        const row = document.createElement("tr");
+        const nameTd = document.createElement("td");
+        const posTd = document.createElement("td");
+        const contactTd = document.createElement("td");
+        const isHead = m.name === teamHead;
+
+        nameTd.textContent = isHead ? `${m.name} (Head)` : m.name;
+        posTd.textContent = m.position || "-";
+        contactTd.textContent = m.contact || "-";
+
+        row.appendChild(nameTd);
+        row.appendChild(posTd);
+        row.appendChild(contactTd);
+        membersTableBody.appendChild(row);
+      });
+    }
+
+    function updateModeUI() {
+      const mode = appModeHidden.value || "personal";
+      if (mode === "team") {
+        teamSection.style.display = "block";
+        memberSelectWrapper.style.display = "block";
+        targetSection.style.display = "none";
+        cashSection.style.display = "none";
+        summarySection.style.display = "none";
+        remainingCard.style.display = "block";
+        monthTargetLabel.textContent = "Team Budget";
+        remainingCard.querySelector("h3").textContent = "Remaining Team Budget";
+      } else {
+        teamSection.style.display = "none";
+        memberSelectWrapper.style.display = "none";
+        targetSection.style.display = "block";
+        cashSection.style.display = "block";
+        summarySection.style.display = "block";
+        remainingCard.style.display = "block";
+        monthTargetLabel.textContent = "Monthly Target";
+        remainingCard.querySelector("h3").textContent = "Remaining This Month";
+      }
+    }
+
+    function renderTable() {
+      tableBody.innerHTML = "";
+      if (expenses.length === 0) {
+        const row = document.createElement("tr");
+        row.className = "empty-row";
+        const cell = document.createElement("td");
+        cell.colSpan = 7;
+        cell.textContent = "No expenses yet. Start tracking every rupee.";
+        row.appendChild(cell);
+        tableBody.appendChild(row);
+        return;
+      }
+
+      expenses.forEach((e, index) => {
+        const row = document.createElement("tr");
+
+        const dateTd = document.createElement("td");
+        const memberTd = document.createElement("td");
+        const catTd = document.createElement("td");
+        const payTd = document.createElement("td");
+        const amtTd = document.createElement("td");
+        const noteTd = document.createElement("td");
+        const delTd = document.createElement("td");
+
+        dateTd.textContent = formatDate(e.date);
+
+        let memberDisplay = "-";
+        if (e.member) {
+          const tm = teamMembers.find((t) => t.name === e.member);
+          if (tm) {
+            const posText = tm.position ? ` (${tm.position})` : "";
+            memberDisplay = tm.name + posText;
+          } else {
+            memberDisplay = e.member;
+          }
+        }
+        memberTd.textContent = memberDisplay;
+
+        catTd.textContent = e.category;
+        payTd.textContent = e.payment;
+        amtTd.textContent = "₹" + e.amount.toFixed(0);
+        noteTd.textContent = e.note || "";
+
+        const btn = document.createElement("button");
+        btn.className = "delete-icon-btn";
+        btn.innerHTML = `
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M9 3h6a1 1 0 0 1 .98.804L16.5 5H20a1 1 0 1 1 0 2h-1.1l-.77 11.088A2 2 0 0 1 16.14 20H7.86a2 2 0 0 1-1.99-1.912L5.1 7H4a1 1 0 1 1 0-2h3.5l.52-1.196A1 1 0 0 1 9 3Zm1.38 4a1 1 0 0 0-.99.858L9 8l.62 8a1 1 0 0 0 1.99-.142L11 7.858A1 1 0 0 0 10.38 7ZM14 7.858a1 1 0 0 0-1.99.284L12.62 16a1 1 0 0 0 1.99-.142L14 8l-.01-.142Z"/>
+          </svg>
+        `;
+        btn.addEventListener("click", () => {
+          expenses.splice(index, 1);
+          saveExpenses();
+          renderTable();
+          calculateTotals();
+          refreshTodaySummary();
+        });
+
+        delTd.appendChild(btn);
+
+        row.style.opacity = "0";
+        row.style.transition = "opacity 0.25s ease-out";
+        setTimeout(() => { row.style.opacity = "1"; }, 10);
+
+        row.appendChild(dateTd);
+        row.appendChild(memberTd);
+        row.appendChild(catTd);
+        row.appendChild(payTd);
+        row.appendChild(amtTd);
+        row.appendChild(noteTd);
+        row.appendChild(delTd);
+
+        tableBody.appendChild(row);
+      });
+    }
+
+    function renderTargetHistory() {
+      targetHistoryBody.innerHTML = "";
+      if (targetHistory.length === 0) {
+        const row = document.createElement("tr");
+        row.className = "empty-row";
+        const cell = document.createElement("td");
+        cell.colSpan = 4;
+        cell.textContent = "No target changes yet.";
+        row.appendChild(cell);
+        targetHistoryBody.appendChild(row);
+        return;
+      }
+
+      targetHistory.slice().reverse().forEach((entry) => {
+        const row = document.createElement("tr");
+        const whenTd = document.createElement("td");
+        const actionTd = document.createElement("td");
+        const amtTd = document.createElement("td");
+        const newTd = document.createElement("td");
+
+        whenTd.textContent = new Date(entry.when).toLocaleString("en-IN");
+        actionTd.textContent = entry.action;
+        amtTd.textContent = "₹" + entry.amount.toFixed(0);
+        newTd.textContent = "₹" + entry.newTarget.toFixed(0);
+
+        row.appendChild(whenTd);
+        row.appendChild(actionTd);
+        row.appendChild(amtTd);
+        row.appendChild(newTd);
+        targetHistoryBody.appendChild(row);
+      });
+    }
+
+    function renderDailyCash() {
+      if (dailyCash.length === 0) {
+        cashInfo.textContent = "No daily cash recorded yet.";
+        return;
+      }
+      const latest = dailyCash[dailyCash.length - 1];
+      cashInfo.textContent =
+        "Latest: ₹" +
+        latest.amount.toFixed(0) +
+        " recorded on " +
+        new Date(latest.dateOnly).toLocaleDateString("en-IN");
+    }
+
+    function getTodayDailyCash() {
+      const today = getToday();
+      const entry = dailyCash.find(
+        (c) => new Date(c.dateOnly).toDateString() === today.toDateString()
+      );
+      return entry ? entry.amount : 0;
+    }
+
+    function refreshTodaySummary() {
+      const today = getToday();
+      const startCash = getTodayDailyCash();
+
+      let cashSpent = 0;
+      let upiSpent = 0;
+
+      for (const e of expenses) {
+        const d = new Date(e.date);
+        if (Number.isNaN(d.getTime())) continue;
+        const dMid = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        const sameDay =
+          dMid.getFullYear() === today.getFullYear() &&
+          dMid.getMonth() === today.getMonth() &&
+          dMid.getDate() === today.getDate();
+        if (!sameDay) continue;
+
+        if (e.payment === "Cash") {
+          cashSpent += e.amount;
+        } else if (e.payment === "UPI") {
+          upiSpent += e.amount;
+        }
+      }
+
+      const totalSpent = cashSpent + upiSpent;
+      const closingCash = startCash - cashSpent;
+
+      sumStartCashEl.textContent = "₹" + Math.round(startCash);
+      sumCashSpentEl.textContent = "₹" + Math.round(cashSpent);
+      sumUPISpentEl.textContent = "₹" + Math.round(upiSpent);
+      sumTotalSpentEl.textContent = "₹" + Math.round(totalSpent);
+      sumClosingCashEl.textContent = "₹" + Math.round(closingCash);
+
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      summaryNoteEl.textContent =
+        "Summary updated at " +
+        timeStr +
+        ". Ideally check around 10:00 PM for end-of-day view.";
+    }
+
+    function updateMonthBanner() {
+      const now = new Date();
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const todayDate = now.getDate();
+
+      const currentMonthTotal = parseInt(monthTotalEl.textContent.replace("₹","")) || 0;
+      const target = monthTarget || 0;
+      const diff = target - currentMonthTotal;
+
+      if (!target) {
+        monthBanner.style.display = "none";
+        return;
+      }
+
+      if (todayDate === lastDay) {
+        // Month end day
+        if (diff >= 0) {
+          monthBanner.classList.remove("bad");
+          monthBannerText.innerHTML =
+            "<strong>Month wrap-up:</strong> You saved ₹" +
+            Math.abs(diff) +
+            " this month. Nice control!";
+        } else {
+          monthBanner.classList.add("bad");
+          monthBannerText.innerHTML =
+            "<strong>Month wrap-up:</strong> You overspent by ₹" +
+            Math.abs(diff) +
+            ". Next month keep this aside as savings.";
+        }
+        monthBanner.style.display = "flex";
+      } else {
+        // Not last day – show future hint when you are close
+        if (diff >= 0 && diff <= target * 0.3) {
+          monthBanner.classList.remove("bad");
+          monthBannerText.innerHTML =
+            "You are very close to your target. Keep this flow for end-of-month savings.";
+          monthBanner.style.display = "flex";
+        } else {
+          monthBanner.style.display = "none";
+        }
+      }
+    }
+
+    monthBannerClose.addEventListener("click", () => {
+      monthBanner.style.display = "none";
+    });
+
+    addMemberBtn.addEventListener("click", () => {
+      const name = memberNameInput2.value.trim();
+      const position = memberPositionInput.value.trim();
+      const contact = memberContactInput.value.trim();
+
+      if (!name) {
+        alert("Enter member name.");
+        return;
+      }
+      if (!contact) {
+        alert("Enter contact number.");
+        return;
+      }
+      if (teamMembers.some((m) => m.name === name)) {
+        alert("This member is already added.");
+        return;
+      }
+
+      teamMembers.push({ name, position, contact });
+      saveMembers();
+      memberNameInput2.value = "";
+      memberPositionInput.value = "";
+      memberContactInput.value = "";
+      renderMembers();
+    });
+
+    teamHeadSelect.addEventListener("change", () => {
+      teamHead = teamHeadSelect.value;
+      saveTeamHead();
+      renderMembers();
+    });
+
+    categoryInput.addEventListener("change", () => {
+      if (categoryInput.value === "Other") {
+        noteInput.required = true;
+        noteLabel.innerHTML = 'Short note <span>(required for "Other")</span>';
+      } else {
+        noteInput.required = false;
+        noteLabel.innerHTML = "Short note <span>(optional)</span>";
+      }
+    });
+
+    function setDateMode(mode) {
+      dateModeHidden.value = mode;
+      if (mode === "now") {
+        btnNow.classList.add("active");
+        btnCustom.classList.remove("active");
+        dateModeLabel.innerHTML = 'Using <span>Now</span> – current date & time';
+      } else {
+        btnCustom.classList.add("active");
+        btnNow.classList.remove("active");
+        dateModeLabel.innerHTML = 'Using <span>Custom</span> – pick a specific day';
+      }
+    }
+
+    btnNow.addEventListener("click", () => setDateMode("now"));
+    btnCustom.addEventListener("click", () => setDateMode("custom"));
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const amount = parseFloat(amountInput.value);
+      const category = categoryInput.value;
+      const payment = paymentInput.value;
+      const note = noteInput.value.trim();
+      const mode = dateModeHidden.value;
+      const appMode = appModeHidden.value || "personal";
+
+      let member = "";
+      if (appMode === "team") {
+        member = memberSelect.value;
+        if (!member) {
+          alert("In team mode, select who spent.");
+          return;
+        }
+      }
+
+      let dateVal;
+      if (mode === "now") {
+        dateVal = new Date().toISOString();
+      } else {
+        if (!dateInput.value) {
+          alert("Select a custom date or switch back to Now.");
+          return;
+        }
+        const d = new Date(dateInput.value);
+        dateVal = d.toISOString();
+      }
+
+      if (!amount || amount <= 0 || !category || !payment) {
+        alert("Enter valid amount, category, and payment mode.");
+        return;
+      }
+
+      if (category === "Other" && note === "") {
+        alert('For category "Other", short note is required.');
+        noteInput.focus();
+        return;
+      }
+
+      expenses.push({ amount, category, payment, note, date: dateVal, member });
+      saveExpenses();
+      renderTable();
+      calculateTotals();
+      refreshTodaySummary();
+      form.reset();
+      setDateMode("now");
+      noteInput.required = false;
+      noteLabel.innerHTML = "Short note <span>(optional)</span>";
+      updateModeUI();
+      renderMembers();
+    });
+
+    targetForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const mode = targetModeInput.value;
+      const val = parseFloat(targetAmountInput.value);
+
+      if (Number.isNaN(val) || val < 0) {
+        alert("Enter a valid amount.");
+        return;
+      }
+
+      let actionLabel = "";
+      if (mode === "set") {
+        monthTarget = val;
+        actionLabel = "Set target";
+      } else if (mode === "add") {
+        monthTarget += val;
+        actionLabel = "Added to target";
+      } else if (mode === "sub") {
+        monthTarget -= val;
+        if (monthTarget < 0) monthTarget = 0;
+        actionLabel = "Subtracted from target";
+      }
+
+      targetHistory.push({
+        when: new Date().toISOString(),
+        action: actionLabel,
+        amount: val,
+        newTarget: monthTarget,
+      });
+
+      saveTarget();
+      calculateTotals();
+      renderTargetHistory();
+      targetForm.reset();
+    });
+
+    cashForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const amt = parseFloat(cashAmountInput.value);
+      if (Number.isNaN(amt) || amt < 0) {
+        alert("Enter a valid cash amount.");
+        return;
+      }
+      const today = getToday();
+      const dateOnly = today.toISOString();
+
+      const existingIndex = dailyCash.findIndex(
+        (c) => new Date(c.dateOnly).toDateString() === today.toDateString()
+      );
+      if (existingIndex >= 0) {
+        dailyCash[existingIndex].amount = amt;
+        dailyCash[existingIndex].dateOnly = dateOnly;
+      } else {
+        dailyCash.push({ dateOnly, amount: amt });
+      }
+
+      saveDailyCash();
+      renderDailyCash();
+      refreshTodaySummary();
+      cashForm.reset();
+    });
+
+    clearAllBtn.addEventListener("click", () => {
+      const ok = confirm(
+        "This will delete ALL data including your name, mode (personal/team), team members, head, expenses, targets, and daily cash. Start fresh?"
+      );
+      if (!ok) return;
+
+      localStorage.removeItem("rishi_expenses");
+      localStorage.removeItem("rishi_month_target");
+      localStorage.removeItem("rishi_target_history");
+      localStorage.removeItem("rishi_daily_cash");
+      localStorage.removeItem("rishi_username");
+      localStorage.removeItem("rishi_mode");
+      localStorage.removeItem("rishi_team_members");
+      localStorage.removeItem("rishi_team_head");
+
+      expenses = [];
+      monthTarget = 0;
+      targetHistory = [];
+      dailyCash = [];
+      teamMembers = [];
+      teamHead = "";
+
+      window.location.reload();
+    });
+
+    refreshTodaySummaryBtn.addEventListener("click", () => {
+      refreshTodaySummary();
+      alert("Today summary refreshed.");
+    });
+
+    function updateDateTime() {
+      const now = new Date();
+      const formatted = now.toLocaleString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      dateTimeEl.textContent = "· " + formatted;
+    }
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+
+    loadFromStorage();
+    renderMembers();
+    renderTable();
+    renderTargetHistory();
+    renderDailyCash();
+    calculateTotals();
+    setDateMode("now");
+    refreshTodaySummary();
+    updateModeUI();
+    initLanding();
+  </script>
+</body>
+</html>
